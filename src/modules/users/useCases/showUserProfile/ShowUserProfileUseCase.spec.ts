@@ -20,7 +20,7 @@ describe('List User', () => {
       password: '123456'
     })
 
-    const id = user.id || '112233';
+    const id = user.id as string;
     const profile = await showUserProfileUseCase.execute(id)
 
     expect(profile).toEqual(user);
