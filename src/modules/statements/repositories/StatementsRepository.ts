@@ -4,6 +4,7 @@ import { Statement } from "../entities/Statement";
 import { ICreateStatementDTO } from "../useCases/createStatement/ICreateStatementDTO";
 import { IGetBalanceDTO } from "../useCases/getBalance/IGetBalanceDTO";
 import { IGetStatementOperationDTO } from "../useCases/getStatementOperation/IGetStatementOperationDTO";
+import { ITransferDTO } from "../useCases/transfers/ITransfersDTO";
 import { IStatementsRepository } from "./IStatementsRepository";
 
 export class StatementsRepository implements IStatementsRepository {
@@ -41,14 +42,19 @@ export class StatementsRepository implements IStatementsRepository {
     >
   {
     const statement = await this.repository.find({
-      where: { user_id }
+      where: [{ user_id }, { sender_id: user_id }],
     });
-
+    console.log(statement);
     const balance = statement.reduce((acc, operation) => {
       if (operation.type === 'deposit') {
-        return acc + operation.amount;
+        return Number(acc) + Number(operation.amount);
+      } else if (operation.type === 'withdraw') {
+        return Number(acc) - Number(operation.amount);
       } else {
-        return acc - operation.amount;
+        if (user_id === operation.sender_id) {
+          return Number(acc) - Number(operation.amount);
+        }
+        return Number(acc) + Number(operation.amount);
       }
     }, 0)
 
@@ -60,5 +66,19 @@ export class StatementsRepository implements IStatementsRepository {
     }
 
     return { balance }
+  }
+
+  async transfer({ user_id, sender_id, amount, description, type }: ITransferDTO): Promise<Statement> {
+    const statement = this.repository.create({
+      user_id,
+      sender_id,
+      amount,
+      description,
+      type,
+    });
+
+    await this.repository.save(statement);
+
+    return statement;
   }
 }
